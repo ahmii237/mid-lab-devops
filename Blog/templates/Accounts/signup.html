@@ -1,0 +1,66 @@
+{% extends 'Accounts/base.html' %}
+{% load static %}
+
+{% block styles %}
+  <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+{% endblock %} 
+
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+  <div class="form-container">
+    <h2>Sign Up</h2>
+
+    {% if messages %}
+      <div class="messages">
+        {% for message in messages %}
+          <p class="alert">{{ message }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if form.errors %}
+      <div class="form-errors">
+        <ul>
+          {% for field in form %}
+            {% for error in field.errors %}
+              <li style="color: red;">{{ error }}</li>
+            {% endfor %}
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <form method="POST">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label for="username">Username</label>
+        {{ form.username }}
+        {% if form.username.errors %}
+          <div class="error">{{ form.username.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        {{ form.email }}
+        {% if form.email.errors %}
+          <div class="error">{{ form.email.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        {{ form.password }}
+        {% if form.password.errors %}
+          <div class="error">{{ form.password.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <button type="submit">Sign Up</button>
+    </form>
+
+    <p>Already have an account? <a href="{% url 'login' %}">Login here</a></p>
+  </div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends 'Accounts/base.html' %}
+
+{% block title %}Login - My Website{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <h2>Login</h2>
+
+    <form method="POST">
+      {% csrf_token %}
+
+      <!-- Username Field -->
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required>
+      </div>
+      <!-- Password Field -->
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+
+      <button type="submit">Login</button>
+    </form>
+
+    <p>Don't have an account? <a href="{% url 'signup' %}">Sign up here</a></p>
+
+    <!-- Display error messages if login fails -->
+    {% if messages %}
+      <div class="error-messages">
+        {% for message in messages %}
+          <p class="error">{{ message }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}
