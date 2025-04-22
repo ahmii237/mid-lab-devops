@@ -1,8 +1,8 @@
-Blog/settings.py
-Blog/__pycache__/
+Blog/Blog/settings.py
+Blog/Blog/__pycache__/
 Blog/static/
 Blog/templates/
-Blog/db.sqlite3
+Blog/Blog/db.sqlite3
 ./manage.py
 .vscode/
 blog-frontend/node_modules/
