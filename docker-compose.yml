@@ -1,27 +1,7 @@
 version: "3.8"
 
 services:
-  # PostgreSQL Database Service
-  db:
-    image: postgres:15-alpine
-    container_name: blog_postgres_db
-    environment:
-      POSTGRES_DB: blogdb
-      POSTGRES_USER: bloguser
-      POSTGRES_PASSWORD: blogpass123
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    networks:
-      - blog_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bloguser -d blogdb"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Django Backend Service
+  # Django Backend Service (Using Neon Database)
   backend:
     build:
       context: ./Blog
@@ -35,12 +15,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://bloguser:blogpass123@db:5432/blogdb
+      - DATABASE_URL=postgresql://neondb_owner:npg_Qo3egb0lGWfJ@ep-divine-sunset-ah9n3pgz-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
       - DEBUG=True
       - ALLOWED_HOSTS=localhost,127.0.0.1,backend
-    depends_on:
-      db:
-        condition: service_healthy
     networks:
       - blog_network
 
@@ -64,11 +41,6 @@ services:
       - blog_network
     stdin_open: true
     tty: true
-
-# Named volumes for persistent storage
-volumes:
-  postgres_data:
-    driver: local
 
 # Custom network for container communication
 networks:
