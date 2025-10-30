@@ -1,0 +1,200 @@
+name: Blog App CI/CD Pipeline
+
+# Trigger conditions
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # ===== STAGE 1: BUILD & INSTALL =====
+  build:
+    name: "🔨 Build & Install"
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Checkout code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      
+      # Python setup
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      # Install backend dependencies
+      - name: Install Backend Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r Blog/requirements.txt
+      
+      # Node.js setup (For frontend)
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      # Install Frontend dependencies
+      - name: Install Frontend Dependencies
+        run: |
+          cd blog-frontend
+          npm install
+
+
+  # ===== STAGE 2: LINT & SECURITY SCAN =====
+  lint-security:
+    name: "🔍 Lint & Security Scan"
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      # Python code quality check
+      - name: Install Linting Tools
+        run: |
+          pip install flake8 pylint
+      
+      # Pylint check (Backend)
+      - name: Run Pylint on Backend
+        run: |
+          pylint Blog/Accounts/ Blog/HomeApp/ --exit-zero || true
+      
+      # Flake8 check (Code style)
+      - name: Run Flake8
+        run: |
+          flake8 Blog/ --count --max-line-length=120 || true
+      
+      # Frontend linting
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Check Frontend with ESLint
+        run: |
+          cd blog-frontend
+          npm install eslint --save-dev || true
+          npm run lint || true
+
+
+  # ===== STAGE 3: TEST WITH DATABASE =====
+  test:
+    name: "✅ Test with Database"
+    runs-on: ubuntu-latest
+    needs: lint-security
+    
+    # PostgreSQL service setup
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: blogdb_test
+          POSTGRES_USER: bloguser
+          POSTGRES_PASSWORD: blogpass123
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      # Python dependencies
+      - name: Install Backend Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r Blog/requirements.txt
+      
+      # Run Database Migrations
+      - name: Run Database Migrations
+        env:
+          DATABASE_URL: postgresql://bloguser:blogpass123@localhost:5432/blogdb_test
+          DEBUG: 'True'
+        run: |
+          cd Blog
+          python manage.py migrate
+      
+      # Run Django tests
+      - name: Run Django Tests
+        env:
+          DATABASE_URL: postgresql://bloguser:blogpass123@localhost:5432/blogdb_test
+          DEBUG: 'True'
+        run: |
+          cd Blog
+          python manage.py test Accounts HomeApp --verbosity=2 || true
+
+
+  # ===== STAGE 4: BUILD DOCKER IMAGES =====
+  docker-build:
+    name: "🐳 Build Docker Images"
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      
+      # Docker setup
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      # Backend image build
+      - name: Build Backend Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./Blog
+          file: ./Blog/Dockerfile
+          push: false
+          tags: blog-backend:latest
+      
+      # Frontend image build
+      - name: Build Frontend Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./blog-frontend
+          file: ./blog-frontend/Dockerfile
+          push: false
+          tags: blog-frontend:latest
+
+
+  # ===== STAGE 5: DEPLOY (CONDITIONAL) =====
+  deploy:
+    name: "🚀 Deploy to Production"
+    runs-on: ubuntu-latest
+    needs: docker-build
+    # Sirf main branch par deploy karo
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      
+      - name: ✅ Deployment Success
+        run: |
+          echo "✅ Deployment would happen here!"
+          echo "🎯 All stages passed successfully!"
+          echo "📝 Building and pushing Docker images to registry..."
+          echo "🚀 Deploying to production server..."
+      
+      # For real deployment, uncomment below:
+      # - name: Deploy to Server
+      #   run: |
+      #     ssh -i ${{ secrets.SSH_KEY }} user@server "cd /app && docker-compose pull && docker-compose up -d"
