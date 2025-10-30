@@ -3,7 +3,7 @@ name: Blog App CI/CD Pipeline
 # Trigger conditions
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, fa22-bse-181 ]
   pull_request:
     branches: [ main ]
 
