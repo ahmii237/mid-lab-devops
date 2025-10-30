@@ -6,3 +6,4 @@ Blog/Blog/db.sqlite3
 ./manage.py
 .vscode/
 blog-frontend/node_modules/
+.env
